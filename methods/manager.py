@@ -40,7 +40,6 @@ class Manager(object):
         self.query_mode = "mahalanobis"
         self.max_expert = -1
         self.eoeid2waveid = {}
-        self.epsilon = 1e-6
         # NgoDinhLuyen EoE
 
     def train_classifier(self, args, classifier, swag_classifier, replayed_epochs, name):
@@ -316,15 +315,7 @@ class Manager(object):
         self.expert_distribution[expert_id]["class_mean"].append(mean.cuda())
         self.expert_distribution[expert_id]["accumulate_cov"] += cov
         avg_cov = self.expert_distribution[expert_id]["accumulate_cov"].cuda() / length
-        
-        # NgoDinhLuyen EoE
-        # self.expert_distribution[expert_id]["cov_inv"] = torch.linalg.pinv(avg_cov, hermitian=True)
-        
-        U, S, Vh = torch.linalg.svd(avg_cov)
-        S_inv = torch.diag(1.0 / (S + self.epsilon))  # Tránh chia cho 0
-        avg_cov_inv = Vh.T @ S_inv @ U.T
-        self.expert_distribution[expert_id]["cov_inv"] = avg_cov_inv
-        # NgoDinhLuyen EoE
+        self.expert_distribution[expert_id]["cov_inv"] = torch.linalg.pinv(avg_cov, hermitian=True)
     
     @torch.no_grad()
     def get_mean_and_cov(self, args, encoder, dataset, name, expert_id=0):
@@ -604,6 +595,12 @@ class Manager(object):
         sampler = data_sampler(args=args, seed=args.seed)
         self.rel2id = sampler.rel2id
         self.id2rel = sampler.id2rel
+        
+        # NgoDinhLuyen EoE
+        self.eoeid2waveid = sampler.eoeid2waveid  
+        print(self.eoeid2waveid)   
+        # NgoDinhLuyen EoE 
+
 
         # convert
         self.id2taskid = {}
@@ -624,6 +621,11 @@ class Manager(object):
 
         for steps, (training_data, valid_data, test_data, current_relations, 
                     historic_test_data, seen_relations, seen_descriptions) in enumerate(sampler):
+            
+            # NgoDinhLuyen EoE
+            self.num_tasks += 1
+            # NgoDinhLuyen EoE
+            
             print("=" * 100)
             print(f"task={steps+1}")
             print(f"current relations={current_relations}")
