@@ -40,6 +40,7 @@ class Manager(object):
         self.query_mode = "mahalanobis"
         self.max_expert = -1
         self.eoeid2waveid = {}
+        self.epsilon = 1e-6
         # NgoDinhLuyen EoE
 
     def train_classifier(self, args, classifier, swag_classifier, replayed_epochs, name):
@@ -315,7 +316,15 @@ class Manager(object):
         self.expert_distribution[expert_id]["class_mean"].append(mean.cuda())
         self.expert_distribution[expert_id]["accumulate_cov"] += cov
         avg_cov = self.expert_distribution[expert_id]["accumulate_cov"].cuda() / length
-        self.expert_distribution[expert_id]["cov_inv"] = torch.linalg.pinv(avg_cov, hermitian=True)
+        
+        # NgoDinhLuyen EoE
+        # self.expert_distribution[expert_id]["cov_inv"] = torch.linalg.pinv(avg_cov, hermitian=True)
+        
+        U, S, Vh = torch.linalg.svd(avg_cov)
+        S_inv = torch.diag(1.0 / (S + self.epsilon))  # Tránh chia cho 0
+        avg_cov_inv = Vh.T @ S_inv @ U.T
+        self.expert_distribution[expert_id]["cov_inv"] = avg_cov_inv
+        # NgoDinhLuyen EoE
     
     @torch.no_grad()
     def get_mean_and_cov(self, args, encoder, dataset, name, expert_id=0):
@@ -632,6 +641,15 @@ class Manager(object):
 
                 rel_id = self.rel2id[relation]
                 self.id2taskid[rel_id] = steps
+
+            # NgoDinhLuyen EoE
+            self.expert_distribution.append({
+                "class_mean": [torch.zeros(args.rel_per_task, args.encoder_output_size * 2).to(args.device) for _ in
+                            range(self.num_tasks)],
+                "accumulate_cov": torch.zeros(args.encoder_output_size * 2, args.encoder_output_size * 2),
+                "cov_inv": torch.ones(args.encoder_output_size * 2, args.encoder_output_size * 2),
+            })
+            # NgoDinhLuyen EoE
 
             # train encoder
             if steps == 0:
