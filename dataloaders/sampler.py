@@ -45,6 +45,11 @@ class data_sampler(object):
         self.shuffle_index = list(range(len(self.id2rel)))
         random.shuffle(self.shuffle_index)
         self.shuffle_index = np.argsort(self.shuffle_index)
+        
+        # NgoDinhLuyen EoE
+        self.eoeid2waveid = {}      
+        self.eoeid2waveid = {sorted_idx : shuffled_idx for sorted_idx, shuffled_idx in enumerate(self.shuffle_index)}
+        # NgoDinhLuyen EoE
 
         # regenerate data
         self.training_dataset, self.valid_dataset, self.test_dataset = self._read_data(self.args.data_file)
