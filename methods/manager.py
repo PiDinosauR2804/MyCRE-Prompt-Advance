@@ -222,7 +222,7 @@ class Manager(object):
                 tokens = torch.stack([x.to(args.device) for x in tokens], dim=0)
                 x_key = torch.stack([x.to(args.device) for x in keys], dim=0)
 
-                # encoder forward
+                # encoder # new prompt pool
                 encoder_out = encoder(tokens, prompt_pool, x_key)
                 
                 description_out = {}
@@ -298,6 +298,8 @@ class Manager(object):
         out["replay_key"] = key_mixture
         out["replay"] = encoded_mixture
         return out
+
+    # NgoDinhLuyen EoE
 
     def statistic(self, args, encoder, train_data, task_id):
         for i in range(-1, task_id + 1):
@@ -497,6 +499,8 @@ class Manager(object):
         pool_ids = [self.id2taskid[int(x)] for x in pred]
         return pool_ids, pred
 
+    # NgoDinhLuyen EoE
+
     @torch.no_grad()
     def evaluate_strict_model(self, args, encoder, classifier, prompted_classifier, test_data, name, task_id):
         # models evaluation mode
@@ -638,6 +642,10 @@ class Manager(object):
             self.train_prompt_pool(args, encoder, self.prompt_pools[-1], 
                                    cur_training_data, seen_descriptions,
                                    task_id=steps, beta=args.contrastive_loss_coeff)
+
+            # NgoDinhLuyen EoE
+            self.statistic(args, encoder, cur_training_data, steps)
+            # NgoDinhLuyen EoE
 
             # memory
             for i, relation in enumerate(current_relations):
